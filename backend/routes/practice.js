@@ -7,6 +7,7 @@
 
 const express = require('express');
 const router = express.Router();
+const Practice = require('../models/practiceSchema')
 
 // GET all practice records
 router.get('/', (req, res) => {
@@ -19,8 +20,16 @@ router.get('/:id', (req, res) => {
 })
 
 // POST a single practice record
-router.post('/', (req, res) => {
-    res.json({messg: 'POST a single practice record'})
+router.post('/', async (req, res) => {
+    const { title, description, bars, reps, bpm } = req.body;
+    try {
+        const practice = await Practice.create({ title, description, bars, reps, bpm });
+        res.status(200).json(practice)
+    }
+    catch (error) {
+        console.log('Oh no! There was an error!')
+        res.status(400).json({error: error.message})
+    }
 })
 
 // DELETE a single practice record
