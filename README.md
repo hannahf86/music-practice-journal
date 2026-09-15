@@ -1,36 +1,93 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Music Practice Journal
 
-## Getting Started
+A web app for music students, teachers, and parents. Students plan weekly practice, write
+reflections, and track progress across a term; teachers write structured lesson notes each week;
+parents have read-only visibility of their child's journal.
 
-First, run the development server:
+Built with a **safeguarding-first data model** enforced at the database level (Postgres RLS).
+
+## Tech stack
+
+- **Next.js 16** (App Router, mostly client components)
+- **Supabase** — auth, Postgres, storage
+- **Zustand** — auth state · **TanStack Query** — server state & caching
+- **TypeScript**, **Zod** (form validation), **date-fns**
+- Plain CSS design tokens in `app/globals.css`
+
+> Originally a React Native / Expo app; ported to the web to remove the Expo Go dependency.
+
+## Getting started
 
 ```bash
+npm install
+cp .env.local.example .env.local   # then fill in your Supabase values
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000 (or `npm run dev -- --port 3001` if 3000 is busy).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Environment variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Client env vars are prefixed `NEXT_PUBLIC_` and read at build time:
 
-## Learn More
+```
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-publishable-or-anon-key
+```
 
-To learn more about Next.js, take a look at the following resources:
+`.env.local` is gitignored. On Vercel, set these two variables in
+**Project → Settings → Environment Variables**.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### Database
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Apply the schema, RLS policies, and audit triggers from the migration in the companion
+React Native repo (`supabase/migrations/0001_init.sql`) — either with `supabase db push` or by
+pasting it into the Supabase SQL editor.
 
-## Deploy on Vercel
+## Deployment (Vercel)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Import the repo at [vercel.com/new](https://vercel.com/new) — Next.js is auto-detected.
+2. Add the two `NEXT_PUBLIC_SUPABASE_*` env vars.
+3. Deploy. Every push to the default branch auto-deploys.
+4. In Supabase → **Authentication → URL Configuration**, set the **Site URL** and **Redirect
+   URLs** to your deployed domain so sign-up and password-reset links resolve correctly.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Safeguarding model (enforced by RLS)
+
+- Teachers can **only** write lesson notes — no other write access to student data.
+- Teachers **cannot** read `practice_notes` or the private fields on `weekly_reviews`
+  (`did_well`, `improvements`, `general_notes`). They see aggregates **only** through the
+  `teacher_review_summary` view (`days_practised`, `self_rating`, `practice_score`).
+- Accepting a student link requires a signed professional declaration.
+- All link events are written to an append-only `safeguarding_audit_log`.
+- No private teacher↔student messaging exists anywhere in the schema or UI.
+
+## Project structure
+
+```
+app/
+  layout.tsx              root layout + providers
+  providers.tsx           QueryClient + auth listener + route guard
+  page.tsx                entry (redirects via the guard)
+  (auth)/                 welcome, setup (role + age gate), teacher-declaration, forgot-password
+  (app)/
+    layout.tsx            authenticated shell + role-aware tab bar
+    home, plan, review, progress, students
+    student/              lesson-notes, practice-notes, goals, concerts
+    teacher/              lesson-notes, student-progress
+components/               ui kit, BarChart, Avatar, Logo, TabBar
+hooks/queries.ts          TanStack Query hooks
+lib/                      supabase client, query client, date + age helpers, labels
+store/auth.ts             Zustand auth store
+types/database.ts         types mirroring the schema
+constants/theme.ts        design token values (also mirrored as CSS vars in globals.css)
+```
+
+## User roles & v1 scope
+
+- **Teacher** — completes a professional declaration; writes lesson notes only.
+- **Student (13+)** — own account; a parent can be linked as an observer.
+- **Parent (`parent_proxy`)** — for under-13s the parent holds the child's journal directly
+  (no separate child login).
+- DBS/union verification is self-declaration only in v1.
+- Goal image upload has a DB column but no uploader wired yet (follow-up).
