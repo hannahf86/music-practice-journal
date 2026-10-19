@@ -44,8 +44,11 @@
   --r-xl: 20px;
   --r-full: 999px;
 
-  --app-width: 480px;
+  --app-width: 480px;        /* bottom-sheet / mobile reference width */
+  --content-width: 680px;    /* comfortable reading column */
+  --sidebar-w: 240px;
   --tabbar-h: 64px;
+  --desktop: 880px;          /* (reference only — media queries hardcode this) */
 }
 
 * {
@@ -57,7 +60,7 @@ body {
   padding: 0;
 }
 body {
-  background: var(--bg-secondary);
+  background: var(--bg-tertiary);
   color: var(--text-primary);
   font-family:
     system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -73,24 +76,100 @@ textarea {
   font-family: inherit;
 }
 
-/* App shell — a centered phone-like column */
-.app-shell {
-  max-width: var(--app-width);
-  margin: 0 auto;
+/* ── Responsive app frame ──────────────────────────────────────────────────────
+   Mobile: single centred column + fixed bottom tab bar.
+   Desktop (≥880px): left sidebar + centred content column (see media query below). */
+.app-frame {
   min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
   background: var(--bg-tertiary);
-  position: relative;
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.04);
+}
+.app-content {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }
 .screen {
+  width: 100%;
+  max-width: var(--content-width);
   padding: var(--sp-4);
-  padding-bottom: calc(var(--tabbar-h) + var(--sp-6));
+  padding-bottom: calc(var(--tabbar-h) + var(--sp-6)); /* clear the fixed tab bar */
   display: flex;
   flex-direction: column;
   gap: var(--sp-4);
 }
 .screen--flush {
-  padding-bottom: var(--sp-6);
+  /* detail screens — still inside the tabbed shell on mobile, so keep the clearance */
+  padding-bottom: calc(var(--tabbar-h) + var(--sp-6));
+}
+
+/* Auth screens — centred column on any width, no nav */
+.auth-page {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-5);
+  background: var(--bg-tertiary);
+}
+.auth-col {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+/* Desktop sidebar (hidden on mobile; shown in the ≥880px media query) */
+.side-nav {
+  display: none;
+}
+.side-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+.side-brand-name {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--text-primary);
+}
+.side-links {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+.side-link {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3);
+  border-radius: var(--r-md);
+  color: var(--text-secondary);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 15px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+}
+.side-link:hover {
+  background: var(--bg-tertiary);
+}
+.side-link--active {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+.side-signout {
+  color: var(--text-tertiary);
+  margin-top: var(--sp-2);
 }
 
 /* Typography */
@@ -320,14 +399,14 @@ textarea {
   color: var(--text-inverse);
 }
 
-/* Bottom tab bar */
+/* Bottom tab bar (mobile) */
 .tabbar {
   position: fixed;
   bottom: 0;
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
-  max-width: var(--app-width);
+  max-width: var(--content-width);
   height: var(--tabbar-h);
   background: var(--bg);
   border-top: 1px solid var(--border);
@@ -424,5 +503,46 @@ textarea {
 @keyframes spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* ── Desktop (≥880px): sidebar nav + centred content, no bottom tab bar ─────────── */
+@media (min-width: 880px) {
+  .app-frame {
+    flex-direction: row;
+  }
+  .side-nav {
+    display: flex;
+    flex-direction: column;
+    width: var(--sidebar-w);
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    height: 100dvh;
+    padding: var(--sp-5) var(--sp-4);
+    background: var(--bg);
+    border-right: 1px solid var(--border);
+  }
+  .app-content {
+    align-items: flex-start;
+    padding: 0 var(--sp-5);
+  }
+  .screen,
+  .screen--flush {
+    max-width: var(--content-width);
+    margin: 0 auto;
+    padding: var(--sp-8) var(--sp-5);
+  }
+  .tabbar {
+    display: none;
+  }
+  /* Modals centre on desktop rather than sticking to the bottom */
+  .backdrop {
+    align-items: center;
+  }
+  .sheet {
+    border-radius: var(--r-xl);
+    max-width: 440px;
+    padding-bottom: var(--sp-5);
   }
 }

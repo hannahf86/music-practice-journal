@@ -1,4 +1,5 @@
-// app/layout.tsx — root layout: global styles + client providers + centered app shell.
+// app/layout.tsx — root layout: global styles + client providers.
+// (Each route group — (auth) / (app) — provides its own responsive container.)
 import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Providers } from './providers';
@@ -18,9 +19,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <Providers>
-          <div className="app-shell">{children}</div>
-        </Providers>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

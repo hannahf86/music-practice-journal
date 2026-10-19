@@ -1,7 +1,9 @@
 'use client';
-// app/(app)/layout.tsx — authenticated shell: guards on session+profile, renders the tab bar.
+// app/(app)/layout.tsx — authenticated shell: guards on session+profile, then a responsive
+// frame — desktop sidebar + centred content, mobile bottom tab bar.
 import { useAuthStore } from '@/store/auth';
 import { TabBar } from '@/components/TabBar';
+import { SideNav } from '@/components/SideNav';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const session = useAuthStore((s) => s.session);
@@ -19,9 +21,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <>
-      {children}
+    <div className="app-frame">
+      <SideNav />
+      <div className="app-content">{children}</div>
       <TabBar />
-    </>
+    </div>
   );
 }

@@ -1,17 +1,8 @@
-// app/(auth)/layout.tsx — full-height, padded container for the auth screens (no tab bar).
+// app/(auth)/layout.tsx — centred auth column (no nav), comfortable at any width.
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      style={{
-        minHeight: '100dvh',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        padding: 'var(--sp-5)',
-        gap: 'var(--sp-5)',
-      }}
-    >
-      {children}
+    <div className="auth-page">
+      <div className="auth-col">{children}</div>
     </div>
   );
 }
