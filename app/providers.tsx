@@ -7,7 +7,7 @@ import { queryClient } from '@/lib/query';
 import { supabase } from '@/lib/supabase';
 import { useAuthStore } from '@/store/auth';
 
-const AUTH_ROUTES = ['/welcome', '/setup', '/teacher-declaration', '/forgot-password'];
+const AUTH_ROUTES = ['/welcome', '/setup', '/teacher-declaration', '/forgot-password', '/reset-password'];
 
 // Wires supabase auth state into the Zustand store.
 function useAuthListener() {
@@ -43,6 +43,10 @@ function useRouteGuard() {
   useEffect(() => {
     if (!isInitialised) return;
     const inAuth = AUTH_ROUTES.includes(pathname);
+
+    // Never redirect away from the password-reset screen: the recovery link lands here WITH a
+    // valid session, so without this it would immediately bounce to /home (the original bug).
+    if (pathname === '/reset-password') return;
 
     if (!session) {
       if (!inAuth) router.replace('/welcome');
