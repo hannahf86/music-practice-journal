@@ -70,9 +70,20 @@ export type ParentStudentLink = {
   created_at: string;
 }
 
+export type RosterStudent = {
+  id: string;
+  teacher_id: string;
+  display_name: string;
+  date_of_birth: string | null;
+  account_id: string | null; // set when a student claims the entry via the teacher's code
+  created_at: string;
+  updated_at: string;
+};
+
 export type LessonWeek = {
   id: string;
-  student_id: string;
+  student_id: string | null; // null for an unclaimed roster student
+  roster_student_id: string | null; // set when the subject is a roster student
   teacher_id: string;
   week_start: string; // ISO date (Monday)
   week_number: number; // 1..13 within the term
@@ -207,8 +218,14 @@ export type Database = {
       };
       lesson_weeks: {
         Row: LessonWeek;
-        Insert: Partial<LessonWeek> & { student_id: string; teacher_id: string; week_start: string };
+        Insert: Partial<LessonWeek> & { teacher_id: string; week_start: string };
         Update: Partial<LessonWeek>;
+        Relationships: Rel;
+      };
+      roster_students: {
+        Row: RosterStudent;
+        Insert: Partial<RosterStudent> & { teacher_id: string; display_name: string };
+        Update: Partial<RosterStudent>;
         Relationships: Rel;
       };
       weekly_goals: {

@@ -14,6 +14,7 @@ import type {
   TeacherReviewSummary,
   StudentTeacherLink,
   PracticeSection,
+  RosterStudent,
 } from '@/types/database';
 
 // ── Lesson weeks ──────────────────────────────────────────────────────────────
@@ -466,5 +467,74 @@ export function useSaveLessonNotes() {
       qc.invalidateQueries({ queryKey: ['lessonWeeks', vars.student_id] });
       qc.invalidateQueries({ queryKey: ['lessonWeek', vars.student_id] });
     },
+  });
+}
+
+// ── Teacher roster (account-less students the teacher adds by name) ────────────
+export function useTeacherRoster(teacherId?: string) {
+  return useQuery({
+    queryKey: ['roster', teacherId],
+    enabled: !!teacherId,
+    queryFn: async (): Promise<RosterStudent[]> => {
+      const { data, error } = await supabase
+        .from('roster_students')
+        .select('*')
+        .eq('teacher_id', teacherId!)
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+}
+
+export function useAddRosterStudent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (row: { teacher_id: string; display_name: string; date_of_birth?: string | null }) => {
+      const { data, error } = await supabase.from('roster_students').insert(row).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: ['roster', vars.teacher_id] }),
+  });
+}
+
+// Current-week lesson notes for a roster student (teacher-authored).
+export function useRosterLessonWeek(rosterStudentId?: string) {
+  const week = weekStartISO();
+  return useQuery({
+    queryKey: ['rosterLessonWeek', rosterStudentId, week],
+    enabled: !!rosterStudentId,
+    queryFn: async (): Promise<LessonWeek | null> => {
+      const { data, error } = await supabase
+        .from('lesson_weeks')
+        .select('*')
+        .eq('roster_student_id', rosterStudentId!)
+        .eq('week_start', week)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+}
+
+export function useSaveRosterLessonNotes() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (row: Partial<LessonWeek> & {
+      roster_student_id: string;
+      teacher_id: string;
+      week_start: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('lesson_weeks')
+        .upsert({ ...row, updated_at: new Date().toISOString() }, { onConflict: 'roster_student_id,week_start' })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_d, vars) =>
+      qc.invalidateQueries({ queryKey: ['rosterLessonWeek', vars.roster_student_id] }),
   });
 }

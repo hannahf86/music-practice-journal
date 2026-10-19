@@ -1,11 +1,11 @@
 'use client';
-// app/(app)/teacher/lesson-notes/page.tsx — teacher writes/publishes structured weekly notes.
+// app/(app)/teacher/lesson-notes/page.tsx — teacher writes/publishes weekly notes for a roster student.
 import { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { Card, Button, Pill, BackButton } from '@/components/ui';
 import { weekRangeLabel, weekStartISO } from '@/lib/date';
-import { useCurrentLessonWeek, useSaveLessonNotes } from '@/hooks/queries';
+import { useRosterLessonWeek, useSaveRosterLessonNotes } from '@/hooks/queries';
 
 const SECTIONS = [
   { key: 'technical_work' as const, label: 'Technical Work', placeholder: 'Use your notes to set goals for the week. Ask your student to use Practice Tips for help.' },
@@ -17,11 +17,11 @@ const SECTIONS = [
 function TeacherLessonNotesInner() {
   const router = useRouter();
   const params = useSearchParams();
-  const studentId = params.get('studentId') ?? undefined;
+  const rosterStudentId = params.get('rosterStudentId') ?? undefined;
   const name = params.get('name') ?? '';
   const profile = useAuthStore((s) => s.profile);
-  const { data: lessonWeek } = useCurrentLessonWeek(studentId);
-  const saveNotes = useSaveLessonNotes();
+  const { data: lessonWeek } = useRosterLessonWeek(rosterStudentId);
+  const saveNotes = useSaveRosterLessonNotes();
 
   const [fields, setFields] = useState<Record<string, string>>({});
   useEffect(() => {
@@ -34,10 +34,10 @@ function TeacherLessonNotesInner() {
   }, [lessonWeek]);
 
   function save(publish: boolean) {
-    if (!studentId || !profile) return;
+    if (!rosterStudentId || !profile) return;
     saveNotes.mutate(
       {
-        student_id: studentId,
+        roster_student_id: rosterStudentId,
         teacher_id: profile.id,
         week_start: lessonWeek?.week_start ?? weekStartISO(),
         technical_work: fields.technical_work?.trim() || null,
@@ -47,11 +47,9 @@ function TeacherLessonNotesInner() {
         published: publish,
       },
       {
-        onSuccess: () => window.alert(publish ? 'Published — your student can see these notes now.' : 'Saved as a draft.'),
-        onError: (e: unknown) => {
-          const msg = e instanceof Error ? e.message : 'Could not save';
-          window.alert(msg.includes('policy') ? 'You can only write notes for students actively linked to you.' : msg);
-        },
+        onSuccess: () =>
+          window.alert(publish ? 'Published — visible to the student once they join.' : 'Saved as a draft.'),
+        onError: (e: unknown) => window.alert(e instanceof Error ? e.message : 'Could not save'),
       },
     );
   }

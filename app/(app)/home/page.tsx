@@ -12,7 +12,7 @@ import {
   usePracticePlans,
   useWeeklyReview,
   useSaveReview,
-  useTeacherStudents,
+  useTeacherRoster,
 } from '@/hooks/queries';
 import type { Mood } from '@/types/database';
 
@@ -169,8 +169,8 @@ function StudentHome() {
 function TeacherHome() {
   const router = useRouter();
   const profile = useAuthStore((s) => s.profile);
-  const { data: students = [] } = useTeacherStudents(profile?.id);
-  const pending = students.filter((s) => s.link.status === 'pending').length;
+  const { data: roster = [] } = useTeacherRoster(profile?.id);
+  const joined = roster.filter((s) => s.account_id).length;
 
   return (
     <main className="screen">
@@ -196,7 +196,10 @@ function TeacherHome() {
         <div className="row-between">
           <div>
             <h3 className="heading">Your students</h3>
-            <p className="caption">{students.length} linked{pending ? ` · ${pending} pending` : ''}</p>
+            <p className="caption">
+              {roster.length} student{roster.length === 1 ? '' : 's'}
+              {joined ? ` · ${joined} joined` : ''}
+            </p>
           </div>
           <span className="caption text-primary-c">Open ›</span>
         </div>
