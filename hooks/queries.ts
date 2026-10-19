@@ -534,7 +534,29 @@ export function useSaveRosterLessonNotes() {
       if (error) throw error;
       return data;
     },
-    onSuccess: (_d, vars) =>
-      qc.invalidateQueries({ queryKey: ['rosterLessonWeek', vars.roster_student_id] }),
+    onSuccess: (_d, vars) => {
+      qc.invalidateQueries({ queryKey: ['rosterLessonWeek', vars.roster_student_id] });
+      qc.invalidateQueries({ queryKey: ['teacherWeekNotes', vars.teacher_id] });
+    },
+  });
+}
+
+// All of a teacher's current-week lesson notes (across their roster), newest first.
+export function useTeacherWeekNotes(teacherId?: string) {
+  const week = weekStartISO();
+  return useQuery({
+    queryKey: ['teacherWeekNotes', teacherId, week],
+    enabled: !!teacherId,
+    queryFn: async (): Promise<LessonWeek[]> => {
+      const { data, error } = await supabase
+        .from('lesson_weeks')
+        .select('*')
+        .eq('teacher_id', teacherId!)
+        .eq('week_start', week)
+        .not('roster_student_id', 'is', null)
+        .order('updated_at', { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
   });
 }
